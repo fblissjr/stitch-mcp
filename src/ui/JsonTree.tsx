@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { Box, Text, useInput, useApp } from 'ink';
-import { spawn } from 'child_process';
+import { openUrl } from '../platform/browser.js';
 import { getHandler } from './copy-behaviors/registry.js';
 import type { CopyResult } from './copy-behaviors/types.js';
 import { getNavigationTarget, type NavigationResult } from './navigation-behaviors/handler.js';
@@ -234,9 +234,7 @@ export const JsonTree = ({ data, rootLabel, onNavigate, onBack }: JsonTreeProps)
       if (projectId) {
         const url = `https://stitch.withgoogle.com/projects/${projectId}`;
         // Open in browser using platform command
-        const openCmd = process.platform === 'darwin' ? 'open' :
-          process.platform === 'win32' ? 'start' : 'xdg-open';
-        spawn(openCmd, [url], { stdio: 'ignore', detached: true }).unref();
+        openUrl(url);
 
         if (feedbackTimeout.current) clearTimeout(feedbackTimeout.current);
         setFeedbackMessage(`🔗 Opened project in browser`);

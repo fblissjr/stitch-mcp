@@ -5,12 +5,12 @@ import TextInput from 'ink-text-input';
 import { StitchMCPClient } from '../../../services/mcp-client/client.js';
 import { SiteService } from '../../../lib/services/site/SiteService.js';
 import { StitchViteServer } from '../../../lib/server/vite/StitchViteServer.js';
+import { openUrl } from '../../../platform/browser.js';
 import { ProjectSyncer } from '../utils/ProjectSyncer.js';
 import { SiteManifest } from '../utils/SiteManifest.js';
 import { ScreenList } from './ScreenList.js';
 import { useProjectHydration } from '../hooks/useProjectHydration.js';
 import type { UIScreen, SiteConfig } from '../../../lib/services/site/types.js';
-import { spawn } from 'child_process';
 
 interface SiteBuilderProps {
   projectId: string;
@@ -210,13 +210,8 @@ export const SiteBuilder: React.FC<SiteBuilderProps> = ({ projectId, client, onE
 
     if (input === 'o') {
       if (serverUrl && activeScreenId) {
-          const start = (process.platform == 'darwin'? 'open': process.platform == 'win32'? 'start': 'xdg-open');
           const target = `${serverUrl}/_preview/${activeScreenId}`;
-          if (process.platform === 'win32') {
-             spawn('cmd', ['/c', 'start', target], { detached: true, stdio: 'ignore' }).unref();
-          } else {
-             spawn(start, [target], { detached: true, stdio: 'ignore' }).unref();
-          }
+          openUrl(target);
       }
     }
 

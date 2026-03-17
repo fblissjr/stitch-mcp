@@ -2,7 +2,7 @@
  * In-memory HTTP server using node:http for cross-runtime compatibility.
  */
 import { createServer, type Server } from 'node:http';
-import { spawn } from 'node:child_process';
+import { openUrl } from '../../platform/browser.js';
 
 export interface ServeInstance {
   url: string;
@@ -39,10 +39,7 @@ export async function serveHtmlInMemory(
       const stop = () => { clearTimeout(timer); server.close(); };
 
       if (openBrowser) {
-        const cmd = process.platform === 'darwin' ? 'open' :
-                    process.platform === 'win32' ? 'cmd' : 'xdg-open';
-        const args = process.platform === 'win32' ? ['/c', 'start', url] : [url];
-        spawn(cmd, args, { detached: true, stdio: 'ignore' }).unref();
+        openUrl(url);
       }
 
       resolve({ url, stop });

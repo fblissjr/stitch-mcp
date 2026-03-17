@@ -4,7 +4,7 @@ import type { StitchMCPClient } from '../../services/mcp-client/client.js';
 import { downloadText } from '../../ui/copy-behaviors/clipboard.js';
 import clipboard from 'clipboardy';
 import { StitchViteServer } from '../../lib/server/vite/StitchViteServer.js';
-import { spawn } from 'child_process';
+import { openUrl } from '../../platform/browser.js';
 
 interface Screen {
   screenId: string;
@@ -76,12 +76,7 @@ export function ScreensView({ projectId, projectTitle, screens, client }: Screen
           const fullUrl = `${url}${route}`;
 
           if (justStarted) {
-               const start = (process.platform == 'darwin'? 'open': process.platform == 'win32'? 'start': 'xdg-open');
-               if (process.platform === 'win32') {
-                   spawn('cmd', ['/c', 'start', fullUrl], { detached: true, stdio: 'ignore' }).unref();
-               } else {
-                   spawn(start, [fullUrl], { detached: true, stdio: 'ignore' }).unref();
-               }
+               openUrl(fullUrl);
           } else {
               srv.navigate(fullUrl);
           }

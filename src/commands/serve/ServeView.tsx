@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Box, Text, useInput, useApp } from 'ink';
 import { StitchViteServer } from '../../lib/server/vite/StitchViteServer.js';
 import { downloadText } from '../../ui/copy-behaviors/clipboard.js';
-import { spawn } from 'child_process';
+import { openUrl } from '../../platform/browser.js';
 
 interface CodeScreen {
   screenId: string;
@@ -95,7 +95,6 @@ export function ServeView({ projectId, projectTitle, screens }: ServeViewProps) 
       }
 
       if (key.return && serverUrl) {
-          const start = (process.platform == 'darwin'? 'open': process.platform == 'win32'? 'start': 'xdg-open');
           let target = serverUrl;
           if (selectedIndex > 0) {
               const screen = screens[selectedIndex - 1];
@@ -103,11 +102,7 @@ export function ServeView({ projectId, projectTitle, screens }: ServeViewProps) 
                   target = `${serverUrl}/screens/${screen.screenId}`;
               }
           }
-          if (process.platform === 'win32') {
-             spawn('cmd', ['/c', 'start', target], { detached: true, stdio: 'ignore' }).unref();
-          } else {
-             spawn(start, [target], { detached: true, stdio: 'ignore' }).unref();
-          }
+          openUrl(target);
       }
   });
 
