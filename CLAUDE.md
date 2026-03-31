@@ -51,7 +51,7 @@ URL validation and input sanitization are ongoing work in this fork:
 - `AssetGateway.fetchAsset()` has an HTTPS-only URL allowlist -- only permits known Google/CDN domains (`*.googleapis.com`, `*.googleusercontent.com`, `*.gstatic.com`, `cdnjs.cloudflare.com`). Do not bypass or weaken this.
 - `SiteService.generateSite()` validates output paths stay within the pages directory. Do not remove the traversal guard.
 - `get-screen-image.ts` checks `response.ok` before processing image data. Follow this pattern for any new fetch calls.
-- `virtualContent.ts` sets CSP headers (`Content-Security-Policy`, `X-Content-Type-Options`, `Referrer-Policy`) on all Vite-served HTML. Scripts are nonce-gated. Do not remove these headers.
+- CSP headers are applied via `buildCspResponse()` in `lib/server/csp.ts` -- used by both the Vite plugin and `serveHtmlInMemory`. Update the shared helper, not individual call sites.
 - `STITCH_HOST` is validated: must be `https:` and hostname must end with `.googleapis.com`. Invalid values are ignored and the default endpoint is used.
 - File writes containing credentials must use `mode: 0o600`. Both `AuthModeStep.ts` (`.env` file) and `ConfigStep.ts` (Gemini extension JSON) demonstrate this pattern.
 - Shell commands use `shell: false` on non-Windows. Do not switch to `shell: true`.
