@@ -1,7 +1,7 @@
 import { type Plugin, type ViteDevServer } from 'vite';
 import { AssetGateway } from '../../AssetGateway.js';
+import { buildCspResponse } from '../../csp.js';
 import { IncomingMessage, ServerResponse } from 'http';
-import { randomBytes } from 'crypto';
 
 export interface VirtualContentOptions {
   assetGateway: AssetGateway;
@@ -132,21 +132,11 @@ export function virtualContent({ assetGateway, htmlMap }: VirtualContentOptions)
                 // Transform HTML (injects Vite client, etc.)
                 const transformed = await server.transformIndexHtml(req.url, content);
 
-                // CSP: restrict scripts to nonce-gated only (matches serveHtmlInMemory from #158)
-                const nonce = randomBytes(16).toString('base64');
-                const csp = [
-                  "default-src 'self' data: https:;",
-                  `script-src 'self' 'nonce-${nonce}';`,
-                  "style-src 'self' 'unsafe-inline';",
-                  "object-src 'none';",
-                  "base-uri 'self';",
-                ].join(' ');
-                const htmlWithNonces = transformed.replace(/<script(\b[^>]*)>/gi, `<script$1 nonce="${nonce}">`);
-
+                const { headers: cspHeaders, html: htmlWithNonces } = buildCspResponse(transformed);
                 res.setHeader('Content-Type', 'text/html');
-                res.setHeader('Content-Security-Policy', csp);
-                res.setHeader('X-Content-Type-Options', 'nosniff');
-                res.setHeader('Referrer-Policy', 'no-referrer');
+                for (const [key, value] of Object.entries(cspHeaders)) {
+                  res.setHeader(key, value);
+                }
                 res.end(htmlWithNonces);
             } catch (e) {
                 console.error('Transform error:', e);
