@@ -31,9 +31,13 @@ export const getScreenImageTool: VirtualTool = {
       const imageUrl = await screen.getImage();
       if (imageUrl) {
         const response = await fetch(imageUrl);
-        const arrayBuffer = await response.arrayBuffer();
-        const buffer = Buffer.from(arrayBuffer);
-        imageContent = buffer.toString('base64');
+        if (!response.ok) {
+          console.error(`Failed to fetch screenshot image: ${response.status} ${response.statusText}`);
+        } else {
+          const arrayBuffer = await response.arrayBuffer();
+          const buffer = Buffer.from(arrayBuffer);
+          imageContent = buffer.toString('base64');
+        }
       }
     } catch (e) {
       console.error(`Error downloading screenshot: ${e}`);

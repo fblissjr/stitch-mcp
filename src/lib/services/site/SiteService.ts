@@ -106,6 +106,16 @@ const { title } = Astro.props;
         }
 
         const fullPath = path.join(outputDir, 'src/pages', `${filePath}.astro`);
+
+        // Guard against path traversal: resolved path must stay within outputDir/src/pages
+        const pagesRoot = path.resolve(path.join(outputDir, 'src/pages'));
+        const resolvedFullPath = path.resolve(fullPath);
+        if (!resolvedFullPath.startsWith(pagesRoot + path.sep) && resolvedFullPath !== pagesRoot) {
+          throw new Error(
+            `Path traversal detected: route "${route.route}" resolves outside the pages directory`
+          );
+        }
+
         await fs.ensureDir(path.dirname(fullPath));
         await fs.writeFile(fullPath, rewrittenHtml);
       })
