@@ -12,17 +12,13 @@ export class AssetGateway {
   /**
    * Allowlist of hostname patterns for asset fetching.
    * Only HTTPS URLs matching these patterns are permitted.
+   * Expand as needed for additional CDNs used in Stitch designs.
    */
   private static ALLOWED_HOST_PATTERNS: RegExp[] = [
-    /^fonts\.googleapis\.com$/,
-    /^fonts\.gstatic\.com$/,
     /\.googleapis\.com$/,
     /\.googleusercontent\.com$/,
     /\.gstatic\.com$/,
-    /\.ggpht\.com$/,
     /^cdnjs\.cloudflare\.com$/,
-    /^cdn\.jsdelivr\.net$/,
-    /^unpkg\.com$/,
   ];
 
   /**

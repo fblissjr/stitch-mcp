@@ -113,7 +113,7 @@ export class ConfigStep implements CommandStep<InitContext> {
           env,
         };
 
-        await fs.promises.writeFile(extensionPath, JSON.stringify(config, null, 4));
+        await fs.promises.writeFile(extensionPath, JSON.stringify(config, null, 4), { mode: 0o600 });
         const successMsg = context.apiKey
           ? 'Stitch extension configured for STDIO with API Key'
           : `Stitch extension configured for STDIO: Project ID set to ${theme.blue(context.projectId!)}`;
@@ -133,7 +133,7 @@ export class ConfigStep implements CommandStep<InitContext> {
              delete config.mcpServers.stitch.headers['Authorization'];
              delete config.mcpServers.stitch.headers['X-Goog-User-Project'];
 
-             await fs.promises.writeFile(extensionPath, JSON.stringify(config, null, 4));
+             await fs.promises.writeFile(extensionPath, JSON.stringify(config, null, 4), { mode: 0o600 });
              spinner.succeed(`Stitch extension configured for HTTP with API Key`);
         } else {
             config.mcpServers.stitch = {
@@ -144,7 +144,7 @@ export class ConfigStep implements CommandStep<InitContext> {
                 'X-Goog-User-Project': context.projectId!,
               },
             };
-            await fs.promises.writeFile(extensionPath, JSON.stringify(config, null, 4));
+            await fs.promises.writeFile(extensionPath, JSON.stringify(config, null, 4), { mode: 0o600 });
             spinner.succeed(`Stitch extension configured for HTTP: Project ID set to ${theme.blue(context.projectId!)}`);
         }
       }

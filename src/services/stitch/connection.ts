@@ -4,10 +4,26 @@ import {
   type TestConnectionWithApiKeyInput,
 } from './spec.js';
 
+function getStitchUrl(): string {
+  const host = process.env.STITCH_HOST;
+  if (!host) return 'https://stitch.googleapis.com/mcp';
+  try {
+    const parsed = new URL(host);
+    if (parsed.protocol !== 'https:' || !parsed.hostname.endsWith('.googleapis.com')) {
+      console.warn(`STITCH_HOST must be an https://*.googleapis.com URL, ignoring: ${host}`);
+      return 'https://stitch.googleapis.com/mcp';
+    }
+    return host;
+  } catch {
+    console.warn(`STITCH_HOST is not a valid URL, ignoring: ${host}`);
+    return 'https://stitch.googleapis.com/mcp';
+  }
+}
+
 export class StitchConnectionService {
   async testConnectionWithApiKey(input: TestConnectionWithApiKeyInput): Promise<ConnectionTestResult> {
     try {
-      const url = process.env.STITCH_HOST || 'https://stitch.googleapis.com/mcp';
+      const url = getStitchUrl();
 
       const payload = {
         method: 'tools/call',
@@ -88,7 +104,7 @@ export class StitchConnectionService {
 
   async testConnection(input: TestConnectionInput): Promise<ConnectionTestResult> {
     try {
-      const url = process.env.STITCH_HOST || 'https://stitch.googleapis.com/mcp';
+      const url = getStitchUrl();
 
       const payload = {
         method: 'tools/call',
