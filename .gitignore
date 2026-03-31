@@ -13,3 +13,4 @@ bin
 src/commands/registry.ts
 .stitch-mcp
 test-site
+.claude
