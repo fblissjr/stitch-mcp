@@ -73,7 +73,7 @@ describe('AssetGateway', () => {
       globalThis.fetch = (async () => new Response('Not Found', { status: 404 })) as any;
 
       try {
-        const result = await gateway.fetchAsset('https://example.com/missing.png');
+        const result = await gateway.fetchAsset('https://storage.googleapis.com/missing.png');
         expect(result).toBeNull();
       } finally {
         globalThis.fetch = originalFetch;
@@ -87,7 +87,7 @@ describe('AssetGateway', () => {
       }) as any;
 
       try {
-        const result = await gateway.fetchAsset('https://example.com/error.png');
+        const result = await gateway.fetchAsset('https://storage.googleapis.com/error.png');
         expect(result).toBeNull();
       } finally {
         globalThis.fetch = originalFetch;
@@ -107,13 +107,13 @@ describe('AssetGateway', () => {
 
       try {
         // First fetch
-        const result1 = await gateway.fetchAsset('https://example.com/test.txt');
+        const result1 = await gateway.fetchAsset('https://storage.googleapis.com/test.txt');
         expect(result1).not.toBeNull();
         result1?.stream.destroy();
         expect(fetchCount).toBe(1);
 
         // Second fetch should use cache
-        const result2 = await gateway.fetchAsset('https://example.com/test.txt');
+        const result2 = await gateway.fetchAsset('https://storage.googleapis.com/test.txt');
         expect(result2).not.toBeNull();
         result2?.stream.destroy();
         expect(fetchCount).toBe(1); // Still 1, used cache
@@ -150,13 +150,13 @@ describe('AssetGateway', () => {
       })) as any;
 
       try {
-        const html = '<html><head><link rel="stylesheet" href="https://example.com/style.css"></head></html>';
+        const html = '<html><head><link rel="stylesheet" href="https://storage.googleapis.com/style.css"></head></html>';
         const { html: rewritten, assets } = await gateway.rewriteHtmlForBuild(html);
 
         expect(rewritten).toContain('/assets/');
         expect(rewritten).not.toContain('https://example.com');
         expect(assets.length).toBe(1);
-        expect(assets[0]?.url).toBe('https://example.com/style.css');
+        expect(assets[0]?.url).toBe('https://storage.googleapis.com/style.css');
         expect(assets[0]?.filename).toMatch(/\.css$/);
       } finally {
         globalThis.fetch = originalFetch;
@@ -186,7 +186,7 @@ describe('AssetGateway', () => {
       globalThis.fetch = (async () => new Response('Not Found', { status: 404 })) as any;
 
       try {
-        const html = '<html><head><link rel="stylesheet" href="https://example.com/missing.css"></head></html>';
+        const html = '<html><head><link rel="stylesheet" href="https://storage.googleapis.com/missing.css"></head></html>';
         // Should not throw
         const { html: rewritten, assets } = await gateway.rewriteHtmlForBuild(html);
 
@@ -206,7 +206,7 @@ describe('AssetGateway', () => {
       })) as any;
 
       try {
-        const html = '<html><head><script src="https://example.com/app.js"></script></head></html>';
+        const html = '<html><head><script src="https://storage.googleapis.com/app.js"></script></head></html>';
         const { html: rewritten } = await gateway.rewriteHtmlForBuild(html);
 
         // Should have is:inline attribute for Astro compatibility
@@ -298,7 +298,7 @@ describe('AssetGateway', () => {
 
     test('rewrites absolute HTTP URLs to proxy', () => {
       const css = `@font-face { src: url('https://cdn.example.com/fonts/font.woff2'); }`;
-      const base = 'https://example.com/css/style.css';
+      const base = 'https://storage.googleapis.com/css/style.css';
       const result = gateway.rewriteCssUrls(css, base);
 
       const expected = encodeURIComponent('https://cdn.example.com/fonts/font.woff2');
@@ -307,7 +307,7 @@ describe('AssetGateway', () => {
 
     test('preserves data URIs', () => {
       const css = `background: url('data:image/svg+xml;base64,PHN2Zz4=');`;
-      const base = 'https://example.com/css/style.css';
+      const base = 'https://storage.googleapis.com/css/style.css';
       const result = gateway.rewriteCssUrls(css, base);
 
       expect(result).toBe(css);
@@ -315,7 +315,7 @@ describe('AssetGateway', () => {
 
     test('preserves fragment-only refs', () => {
       const css = `filter: url('#blur');`;
-      const base = 'https://example.com/css/style.css';
+      const base = 'https://storage.googleapis.com/css/style.css';
       const result = gateway.rewriteCssUrls(css, base);
 
       expect(result).toBe(css);
@@ -323,7 +323,7 @@ describe('AssetGateway', () => {
 
     test('preserves already-proxied URLs', () => {
       const css = `background: url('/_stitch/asset?url=https%3A%2F%2Fexample.com%2Fimg.png');`;
-      const base = 'https://example.com/css/style.css';
+      const base = 'https://storage.googleapis.com/css/style.css';
       const result = gateway.rewriteCssUrls(css, base);
 
       expect(result).toBe(css);
@@ -331,28 +331,28 @@ describe('AssetGateway', () => {
 
     test('handles unquoted url()', () => {
       const css = `background: url(../images/bg.png);`;
-      const base = 'https://example.com/css/style.css';
+      const base = 'https://storage.googleapis.com/css/style.css';
       const result = gateway.rewriteCssUrls(css, base);
 
-      const expected = encodeURIComponent('https://example.com/images/bg.png');
+      const expected = encodeURIComponent('https://storage.googleapis.com/images/bg.png');
       expect(result).toContain(`/_stitch/asset?url=${expected}`);
     });
 
     test('handles single-quoted url()', () => {
       const css = `background: url('../images/bg.png');`;
-      const base = 'https://example.com/css/style.css';
+      const base = 'https://storage.googleapis.com/css/style.css';
       const result = gateway.rewriteCssUrls(css, base);
 
-      const expected = encodeURIComponent('https://example.com/images/bg.png');
+      const expected = encodeURIComponent('https://storage.googleapis.com/images/bg.png');
       expect(result).toContain(`url('/_stitch/asset?url=${expected}')`);
     });
 
     test('handles double-quoted url()', () => {
       const css = `background: url("../images/bg.png");`;
-      const base = 'https://example.com/css/style.css';
+      const base = 'https://storage.googleapis.com/css/style.css';
       const result = gateway.rewriteCssUrls(css, base);
 
-      const expected = encodeURIComponent('https://example.com/images/bg.png');
+      const expected = encodeURIComponent('https://storage.googleapis.com/images/bg.png');
       expect(result).toContain(`url("/_stitch/asset?url=${expected}")`);
     });
 
@@ -374,7 +374,7 @@ describe('AssetGateway', () => {
 
     test('handles protocol-relative URLs', () => {
       const css = `background: url('//fonts.example.com/font.woff2');`;
-      const base = 'https://example.com/css/style.css';
+      const base = 'https://storage.googleapis.com/css/style.css';
       const result = gateway.rewriteCssUrls(css, base);
 
       const expected = encodeURIComponent('https://fonts.example.com/font.woff2');
@@ -394,7 +394,7 @@ describe('AssetGateway', () => {
 
     test('preserves empty url()', () => {
       const css = `background: url('');`;
-      const base = 'https://example.com/css/style.css';
+      const base = 'https://storage.googleapis.com/css/style.css';
       const result = gateway.rewriteCssUrls(css, base);
 
       expect(result).toBe(css);
@@ -402,7 +402,7 @@ describe('AssetGateway', () => {
 
     test('preserves url() with only whitespace', () => {
       const css = `background: url('  ');`;
-      const base = 'https://example.com/css/style.css';
+      const base = 'https://storage.googleapis.com/css/style.css';
       const result = gateway.rewriteCssUrls(css, base);
 
       expect(result).toBe(css);
@@ -410,25 +410,25 @@ describe('AssetGateway', () => {
 
     test('handles url() with whitespace around the value', () => {
       const css = `background: url(  ../images/bg.png  );`;
-      const base = 'https://example.com/css/style.css';
+      const base = 'https://storage.googleapis.com/css/style.css';
       const result = gateway.rewriteCssUrls(css, base);
 
-      const expected = encodeURIComponent('https://example.com/images/bg.png');
+      const expected = encodeURIComponent('https://storage.googleapis.com/images/bg.png');
       expect(result).toContain(`/_stitch/asset?url=${expected}`);
     });
 
     test('@import bare single-quoted is rewritten', () => {
       const css = `@import '../reset.css';`;
-      const base = 'https://example.com/css/style.css';
+      const base = 'https://storage.googleapis.com/css/style.css';
       const result = gateway.rewriteCssUrls(css, base);
 
-      const expected = encodeURIComponent('https://example.com/reset.css');
+      const expected = encodeURIComponent('https://storage.googleapis.com/reset.css');
       expect(result).toBe(`@import '/_stitch/asset?url=${expected}';`);
     });
 
     test('@import bare double-quoted is rewritten', () => {
       const css = `@import "https://fonts.googleapis.com/css2?family=Roboto";`;
-      const base = 'https://example.com/css/style.css';
+      const base = 'https://storage.googleapis.com/css/style.css';
       const result = gateway.rewriteCssUrls(css, base);
 
       const expected = encodeURIComponent('https://fonts.googleapis.com/css2?family=Roboto');
@@ -437,7 +437,7 @@ describe('AssetGateway', () => {
 
     test('@import url() form is rewritten by url() regex', () => {
       const css = `@import url('https://fonts.googleapis.com/css2?family=Roboto');`;
-      const base = 'https://example.com/css/style.css';
+      const base = 'https://storage.googleapis.com/css/style.css';
       const result = gateway.rewriteCssUrls(css, base);
 
       const expected = encodeURIComponent('https://fonts.googleapis.com/css2?family=Roboto');
@@ -446,7 +446,7 @@ describe('AssetGateway', () => {
 
     test('@import already-proxied is unchanged', () => {
       const css = `@import '/_stitch/asset?url=https%3A%2F%2Fexample.com%2Freset.css';`;
-      const base = 'https://example.com/css/style.css';
+      const base = 'https://storage.googleapis.com/css/style.css';
       const result = gateway.rewriteCssUrls(css, base);
 
       expect(result).toBe(css);
@@ -491,7 +491,7 @@ describe('AssetGateway', () => {
 
       try {
         const destPath = path.join(tempDir, 'output', 'asset.css');
-        const result = await gateway.copyAssetTo('https://example.com/missing.css', destPath);
+        const result = await gateway.copyAssetTo('https://storage.googleapis.com/missing.css', destPath);
         expect(result).toBe(false);
       } finally {
         globalThis.fetch = originalFetch;
@@ -507,10 +507,10 @@ describe('AssetGateway', () => {
 
       try {
         // First fetch to cache
-        await gateway.fetchAsset('https://example.com/style.css');
+        await gateway.fetchAsset('https://storage.googleapis.com/style.css');
 
         const destPath = path.join(tempDir, 'output', 'style.css');
-        const result = await gateway.copyAssetTo('https://example.com/style.css', destPath);
+        const result = await gateway.copyAssetTo('https://storage.googleapis.com/style.css', destPath);
 
         expect(result).toBe(true);
         expect(await fs.pathExists(destPath)).toBe(true);
