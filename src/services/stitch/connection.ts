@@ -4,19 +4,26 @@ import {
   type TestConnectionWithApiKeyInput,
 } from './spec.js';
 
-function getStitchUrl(): string {
-  const host = process.env.STITCH_HOST;
-  if (!host) return 'https://stitch.googleapis.com/mcp';
+const DEFAULT_STITCH_URL = 'https://stitch.googleapis.com/mcp';
+
+/**
+ * Resolve the Stitch API URL. Accepts an optional override; falls back to
+ * STITCH_HOST env var; defaults to the googleapis.com endpoint. Rejects
+ * non-https and non-googleapis.com hosts per the project security policy.
+ */
+export function getStitchUrl(override?: string): string {
+  const host = override || process.env.STITCH_HOST;
+  if (!host) return DEFAULT_STITCH_URL;
   try {
     const parsed = new URL(host);
     if (parsed.protocol !== 'https:' || !parsed.hostname.endsWith('.googleapis.com')) {
       console.warn(`STITCH_HOST must be an https://*.googleapis.com URL, ignoring: ${host}`);
-      return 'https://stitch.googleapis.com/mcp';
+      return DEFAULT_STITCH_URL;
     }
     return host;
   } catch {
     console.warn(`STITCH_HOST is not a valid URL, ignoring: ${host}`);
-    return 'https://stitch.googleapis.com/mcp';
+    return DEFAULT_STITCH_URL;
   }
 }
 

@@ -1,89 +1,111 @@
-import { describe, it, expect, spyOn, beforeEach, afterEach } from 'bun:test';
-import { StitchProxy } from '@google/stitch-sdk';
-import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
+import { describe, it, expect, beforeEach, afterEach } from 'bun:test';
 import { ProxyCommandHandler } from './handler.js';
 
-describe('ProxyCommandHandler (SDK)', () => {
-  let startSpy: any;
-  let transportSpy: any;
+describe('ProxyCommandHandler', () => {
   let originalEnv: NodeJS.ProcessEnv;
 
   beforeEach(() => {
     originalEnv = { ...process.env };
-    process.env.STITCH_API_KEY = 'dummy-key';
-    startSpy = spyOn(StitchProxy.prototype, 'start').mockResolvedValue(undefined);
-    transportSpy = spyOn(StdioServerTransport.prototype, 'start' as any).mockResolvedValue(undefined);
   });
 
   afterEach(() => {
     process.env = originalEnv;
-    startSpy.mockRestore();
-    transportSpy.mockRestore();
   });
 
-  it('starts StitchProxy with a StdioServerTransport', async () => {
+  it('starts CompositeStitchServer with StdioServerTransport', async () => {
+    process.env.STITCH_API_KEY = 'test-key';
+    let serverStarted = false;
+
     const handler = new ProxyCommandHandler({
-      createProxy: (opts) => ({
-        start: async (t: any) => { (t as any).onclose = Promise.resolve(); },
+      createServer: (_config) => ({
+        start: async () => { serverStarted = true; },
         close: async () => {},
       } as any),
-      createTransport: () => ({ onclose: Promise.resolve(), start: async () => {} } as any),
-    });
-    const result = await handler.execute({});
-
-    expect(result.success).toBe(true);
-    expect(result.data?.status).toBe('running');
-  });
-
-  it('passes STITCH_API_KEY env var to StitchProxy', async () => {
-    process.env.STITCH_API_KEY = 'test-key';
-    let receivedApiKey: string | undefined;
-
-    const handler = new ProxyCommandHandler({
-      createProxy: (opts) => {
-        receivedApiKey = opts.apiKey;
-        return {
-          start: async () => {},
-          close: async () => {},
-        } as any;
-      },
-      createTransport: () => ({ onclose: Promise.resolve(), start: async () => {} } as any),
-    });
-
-    const result = await handler.execute({});
-    expect(result.success).toBe(true);
-    expect(receivedApiKey).toBe('test-key');
-  });
-
-  it('awaits transport.onclose before returning', async () => {
-    let oncloseCalled = false;
-    const handler = new ProxyCommandHandler({
-      createProxy: () => ({ start: async () => {}, close: async () => {} } as any),
       createTransport: () => ({
-        onclose: new Promise<void>(resolve => setTimeout(() => { oncloseCalled = true; resolve(); }, 10)),
+        onclose: Promise.resolve(),
         start: async () => {},
       } as any),
     });
 
     const result = await handler.execute({});
     expect(result.success).toBe(true);
-    expect(oncloseCalled).toBe(true);
+    expect(result.data?.status).toBe('running');
+    expect(serverStarted).toBe(true);
   });
 
-  it('returns error when proxy start fails', async () => {
-    startSpy.mockRejectedValue(new Error('Connection refused'));
+  it('passes STITCH_API_KEY to the server config', async () => {
+    process.env.STITCH_API_KEY = 'my-secret-key';
+    let receivedApiKey: string | undefined;
+
+    const handler = new ProxyCommandHandler({
+      createServer: (config) => {
+        receivedApiKey = config.apiKey;
+        return {
+          start: async () => {},
+          close: async () => {},
+        } as any;
+      },
+      createTransport: () => ({
+        onclose: Promise.resolve(),
+        start: async () => {},
+      } as any),
+    });
+
+    const result = await handler.execute({});
+    expect(result.success).toBe(true);
+    expect(receivedApiKey).toBe('my-secret-key');
+  });
+
+  it('returns error when STITCH_API_KEY is missing', async () => {
+    delete process.env.STITCH_API_KEY;
+
     const handler = new ProxyCommandHandler();
+    const result = await handler.execute({});
+
+    expect(result.success).toBe(false);
+    expect(result.error?.code).toBe('MISSING_API_KEY');
+    expect(result.error?.recoverable).toBe(true);
+  });
+
+  it('awaits transport.onclose before returning', async () => {
+    process.env.STITCH_API_KEY = 'test-key';
+    let oncloseFired = false;
+
+    const handler = new ProxyCommandHandler({
+      createServer: () => ({
+        start: async () => {},
+        close: async () => {},
+      } as any),
+      createTransport: () => ({
+        onclose: new Promise<void>(resolve =>
+          setTimeout(() => { oncloseFired = true; resolve(); }, 10)
+        ),
+        start: async () => {},
+      } as any),
+    });
+
+    const result = await handler.execute({});
+    expect(result.success).toBe(true);
+    expect(oncloseFired).toBe(true);
+  });
+
+  it('returns error when server start fails', async () => {
+    process.env.STITCH_API_KEY = 'test-key';
+
+    const handler = new ProxyCommandHandler({
+      createServer: () => ({
+        start: async () => { throw new Error('Connection refused'); },
+        close: async () => {},
+      } as any),
+      createTransport: () => ({
+        onclose: Promise.resolve(),
+        start: async () => {},
+      } as any),
+    });
+
     const result = await handler.execute({});
     expect(result.success).toBe(false);
     expect(result.error?.code).toBe('PROXY_START_ERROR');
     expect(result.error?.message).toBe('Connection refused');
-  });
-
-  it.skip('writes debug log to ~/.stitch/proxy-debug.log when --debug is passed', async () => {
-    // TODO: Confirm StitchProxy exposes an event/hook for debug logging.
-  });
-
-  it.skip('respects STITCH_USE_SYSTEM_GCLOUD env var via pre-obtained access token', async () => {
-    // TODO: Confirm StitchProxy reads STITCH_ACCESS_TOKEN when STITCH_USE_SYSTEM_GCLOUD=1.
   });
 });

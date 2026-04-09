@@ -414,7 +414,7 @@ export class McpConfigHandler implements McpConfigService {
       }
 
       case 'opencode': {
-        const fileName = transport === 'http' ? 'opencode.json' : 'opencode.json';
+        const fileName = 'opencode.json';
         return (
           baseInstructions +
           transportNote +
