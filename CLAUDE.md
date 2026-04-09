@@ -26,6 +26,7 @@ stitch-mcp is a TypeScript CLI + MCP server for Google Stitch. It handles Google
 src/
   cli.ts              -- Entry point (Commander.js)
   commands/            -- CLI commands (init, doctor, serve, site, tool, proxy, etc.)
+    proxy/               -- MCP proxy server (CompositeStitchServer)
     tool/virtual-tools/  -- MCP virtual tools (build_site, get_screen_code, get_screen_image)
   services/            -- Business logic (gcloud, stitch SDK, mcp-config, project)
   lib/server/          -- AssetGateway (caching proxy), Vite plugin, HTML server
@@ -35,6 +36,10 @@ src/
   platform/            -- Environment detection, shell, browser utils
 ```
 
+### Proxy architecture
+
+The MCP proxy (`src/commands/proxy/`) uses `CompositeStitchServer` instead of the SDK's `StitchProxy`. This is intentional -- `StitchProxy` only exposes upstream Stitch tools. `CompositeStitchServer` creates its own `McpServer`, forwards upstream tool calls to the Stitch API via JSON-RPC, and registers the virtual tools (`build_site`, `get_screen_code`, `get_screen_image`) as first-class MCP tools alongside the remote ones. Remote tools are cached with a 30-second TTL to avoid re-fetching on every `tools/list`.
+
 ## Key Conventions
 
 - **Imports**: Relative paths with `.js` extensions (ESM + bundler moduleResolution)
@@ -43,6 +48,7 @@ src/
 - **CLI**: Commander.js with dynamic command loading from `src/commands/*/command.ts`
 - **UI**: Ink (React for terminal) with step-based wizard pattern (`StepRunner`)
 - **Auth**: Two modes -- OAuth (gcloud) and API key (`STITCH_API_KEY` env var)
+- **URL validation**: `getStitchUrl()` in `services/stitch/connection.ts` is the shared STITCH_HOST validator. Reuse it instead of hardcoding the URL or writing new validation.
 
 ## Security
 
@@ -59,7 +65,7 @@ URL validation and input sanitization are ongoing work in this fork:
 ## Running Tests
 
 ```bash
-bun test                    # Full suite (~467 tests + security tests)
+bun test                    # Full suite (~502 tests + security tests)
 bun test tests/security/    # Security regression tests only
 bun test src/lib/server/    # Co-located tests for a specific module
 ```

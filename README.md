@@ -193,7 +193,7 @@ Ensure you have Owner or Editor role, billing is enabled, and the Stitch API is 
 
 ### Authentication URL not appearing
 
-The tool prints authentication URLs to the terminal with a 5-second timeout. Look for a URL starting with `https://accounts.google.com`. If using proxy with `--debug`, check `/tmp/stitch-proxy-debug.log`.
+The tool prints authentication URLs to the terminal with a 5-second timeout. Look for a URL starting with `https://accounts.google.com`.
 
 ### Already authenticated but showing logged in
 
