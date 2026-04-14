@@ -13,6 +13,9 @@ stitch-mcp is a CLI for moving AI-generated UI designs from Google's Stitch plat
 
 Pick the path that matches what you're trying to do:
 
+**Quick start with Claude Code, Claude Desktop, or Antigravity**
+1. [Getting Started tutorial](getting-started.md) -- walks through proxy setup, auth, and first tool calls
+
 **Give your coding agent design context**
 1. [Set up authentication](setup.md)
 2. [Connect your agent](connect-your-agent.md)
@@ -39,6 +42,7 @@ Pick the path that matches what you're trying to do:
 
 | Guide | What it covers |
 |-------|---------------|
+| [Getting Started](getting-started.md) | Step-by-step tutorial for Claude Code, Claude Desktop (cowork), and Antigravity |
 | [Setup](setup.md) | Authentication, environment configuration, and verifying your install |
 | [Connect your agent](connect-your-agent.md) | MCP config for Claude Code, VS Code, Cursor, Gemini CLI, Codex, OpenCode, and Antigravity |
 | [Connection Modes](connection-modes.md) | Proxy vs direct architecture, comparison, and when to use each |
