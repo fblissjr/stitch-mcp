@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.7.0
+
+### Added
+- Local proxy logging with graduated verbosity, composed over the upstream `lib/log` capture primitives:
+  - Levels `off` / `minimal` / `full`. `minimal` (the default) writes one metadata-only line per tool call (tool, timing, ok/error) to `.stitch-mcp/log/events.jsonl`; `full` captures args, results, and downloaded assets via the upstream `CaptureHandler`.
+  - Seeded from `STITCH_MCP_LOG_LEVEL` (or the legacy `STITCH_MCP_LOG=1` toggle, which maps to `full`); log directory overridable via `STITCH_MCP_LOG_DIR`.
+  - New `set_log_level` virtual tool to change verbosity at runtime from any MCP client.
+  - Capture is best-effort: a logging failure never breaks a tool call and is reported once to stderr.
+
+### Changed
+- Synced with upstream v0.9.0 (upload command, cross-runtime fixes, `@google/stitch-sdk` 0.3.5, expanded asset-proxy allowlist, logging subsystem).
+- Trimmed `GEMINI.md` to project-accurate Bun conventions, removing the generic web-app boilerplate that contradicted this project (Vite, `fs-extra`, `node:http`). Added `FORK.md` documenting every deviation this fork carries over upstream.
+- The SSRF asset-proxy allowlist originally added by this fork is now upstream-owned; upstream's version is broader and supersedes ours.
+
 ## 0.6.0
 
 ### Added

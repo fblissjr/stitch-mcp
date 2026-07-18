@@ -10,6 +10,7 @@ import type { Stitch, StitchToolClient } from '@google/stitch-sdk';
 import { virtualTools as defaultVirtualTools } from '../tool/virtual-tools/index.js';
 import type { VirtualTool } from '../tool/spec.js';
 import { getStitchUrl } from '../../services/stitch/connection.js';
+import { createProxyLogger, type ProxyLogger } from '../../lib/log/proxy-logger.js';
 
 const PROTOCOL_VERSION = '2024-11-05';
 const TOOLS_TTL_MS = 30_000;
@@ -40,6 +41,7 @@ export class CompositeStitchServer {
   private virtualToolMap: Map<string, VirtualTool>;
   private virtualToolDefs: Tool[];
   private stitchInstance: Stitch;
+  private logger: ProxyLogger;
 
   constructor(
     config: CompositeServerConfig,
@@ -47,6 +49,7 @@ export class CompositeStitchServer {
       stitch?: Stitch;
       virtualTools?: VirtualTool[];
       createMcpServer?: (name: string, version: string) => McpServer;
+      logger?: ProxyLogger;
     },
   ) {
     this.url = getStitchUrl(config.url);
@@ -59,6 +62,7 @@ export class CompositeStitchServer {
     });
 
     this.stitchInstance = deps?.stitch || defaultStitch;
+    this.logger = deps?.logger || createProxyLogger();
 
     // Exclude list_tools -- we handle tool listing natively via MCP protocol
     const tools = (deps?.virtualTools || defaultVirtualTools)
@@ -92,16 +96,29 @@ export class CompositeStitchServer {
       return { tools: [...this.remoteTools, ...this.virtualToolDefs] };
     });
 
-    // tools/call: route to virtual tool handler or forward to Stitch
+    // tools/call: route to virtual tool handler or forward to Stitch,
+    // recording each call to the local log (level-gated, best-effort).
     this.mcpServer.server.setRequestHandler(CallToolRequestSchema, async (request) => {
       const { name, arguments: args } = request.params;
       console.error(`[stitch-mcp] Calling tool: ${name}`);
 
+      const startedAt = new Date().toISOString();
+      const t0 = Date.now();
       const virtualTool = this.virtualToolMap.get(name);
-      if (virtualTool) {
-        return this.executeVirtualTool(virtualTool, args || {});
-      }
-      return this.forwardToolCall(name, args);
+      const result = virtualTool
+        ? await this.executeVirtualTool(virtualTool, args || {})
+        : await this.forwardToolCall(name, args);
+
+      await this.logger.record({
+        tool: name,
+        args: (args || {}) as Record<string, unknown>,
+        result,
+        duration_ms: Date.now() - t0,
+        started_at: startedAt,
+        finished_at: new Date().toISOString(),
+      });
+
+      return result;
     });
   }
 

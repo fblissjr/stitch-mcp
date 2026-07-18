@@ -1,10 +1,12 @@
 # CLAUDE.md
 
-See also: `GEMINI.md` for Bun tooling conventions (runtime, test runner, package manager). Note that GEMINI.md contains generic Bun guidance that conflicts with this project in places -- the clarifications below take precedence.
+See also: `GEMINI.md` for Bun tooling conventions (runtime, test runner, package manager, build) and `FORK.md` for the ledger of deviations this fork carries over upstream.
 
 ## Project Overview
 
 stitch-mcp is a TypeScript CLI + MCP server for Google Stitch. It handles Google Cloud auth, generates MCP client configs, previews Stitch designs locally, and builds Astro static sites from screen mappings.
+
+This is a private downstream fork of the upstream project (Google, PM-owned). We track upstream and keep our deviations isolated and documented in `FORK.md`; we do not routinely PR changes upstream.
 
 ## Tooling
 
@@ -14,11 +16,11 @@ stitch-mcp is a TypeScript CLI + MCP server for Google Stitch. It handles Google
 - **Build**: `bun run build` (scripts/build.ts + tsc)
 - **No linter/formatter configured** -- no eslint, biome, or prettier
 
-### Where GEMINI.md is wrong for this project
+### Stack notes (don't apply generic Bun boilerplate)
 
-- GEMINI.md says "don't use vite" -- this project uses Vite for the local dev server (`StitchViteServer`). That's intentional.
-- GEMINI.md says "prefer `Bun.file` over `node:fs`" -- this project uses `fs-extra` throughout. Don't migrate unless there's a reason.
-- GEMINI.md says "don't use `express`" -- the project uses neither express nor `Bun.serve()`. It uses Vite's built-in server and Node's `http.createServer`.
+- Uses **Vite** for the local dev server (`StitchViteServer`) -- intentional. Not `Bun.serve()`.
+- Uses **`fs-extra`** for filesystem work, not `node:fs` readFile/writeFile or `Bun.file`.
+- Uses **Vite's built-in server + Node's `http.createServer`** for HTTP, not express or `Bun.serve()`.
 
 ## Architecture
 
@@ -40,6 +42,15 @@ src/
 
 The MCP proxy (`src/commands/proxy/`) uses `CompositeStitchServer` instead of the SDK's `StitchProxy`. This is intentional -- `StitchProxy` only exposes upstream Stitch tools. `CompositeStitchServer` creates its own `McpServer`, forwards upstream tool calls to the Stitch API via JSON-RPC, and registers the virtual tools (`build_site`, `get_screen_code`, `get_screen_image`) as first-class MCP tools alongside the remote ones. Remote tools are cached with a 30-second TTL to avoid re-fetching on every `tools/list`.
 
+### Proxy request logging
+
+`CompositeStitchServer` records each `tools/call` to a local log, gated by a runtime verbosity level (`src/lib/log/level.ts`): `off` / `minimal` / `full`.
+
+- `minimal` (default) appends one metadata-only `call.metadata` line per call (tool, timing, ok/error) to `.stitch-mcp/log/events.jsonl` -- no args, results, or blobs.
+- `full` delegates to the upstream `CaptureHandler` (args + results + content-addressed blobs).
+- The logger (`src/lib/log/proxy-logger.ts`) is a **composition layer over upstream's `lib/log` primitives** (`appendEvent`, `createCaptureHandler`) -- keep it that way so upstream improvements flow through. It is best-effort: capture failures never break a tool call and warn to stderr once.
+- Level is seeded from `STITCH_MCP_LOG_LEVEL` (or legacy `STITCH_MCP_LOG=1` -> `full`); dir overridable via `STITCH_MCP_LOG_DIR`. Runtime changes go through the `set_log_level` virtual tool.
+
 ### Stitch SDK constraints
 
 - `StitchProxy` is sealed: all members are private, `setupHandlers()` is private, no extension points. Do not attempt to subclass or monkey-patch it -- use `CompositeStitchServer` instead.
@@ -60,20 +71,20 @@ The MCP proxy (`src/commands/proxy/`) uses `CompositeStitchServer` instead of th
 
 ## Security
 
-URL validation and input sanitization are ongoing work in this fork:
+The guards below are a mix of upstream-provided and fork-local hardening. See `FORK.md` for which are ours. When touching this code, preserve them:
 
-- `AssetGateway.fetchAsset()` has an HTTPS-only URL allowlist -- only permits known Google/CDN domains (`*.googleapis.com`, `*.googleusercontent.com`, `*.gstatic.com`, `cdnjs.cloudflare.com`). Do not bypass or weaken this.
-- `SiteService.generateSite()` validates output paths stay within the pages directory. Do not remove the traversal guard.
-- `get-screen-image.ts` checks `response.ok` before processing image data. Follow this pattern for any new fetch calls.
-- CSP headers are applied via `buildCspResponse()` in `lib/server/csp.ts` -- used by both the Vite plugin and `serveHtmlInMemory`. Update the shared helper, not individual call sites.
-- `STITCH_HOST` is validated: must be `https:` and hostname must end with `.googleapis.com`. Invalid values are ignored and the default endpoint is used.
+- `AssetGateway.fetchAsset()` has an HTTPS-only hostname allowlist (`ALLOWED_HOST_PATTERNS`) -- currently `*.googleapis.com`, `*.googleusercontent.com`, `*.gstatic.com`, `cdnjs.cloudflare.com`, `cdn.tailwindcss.com`, `images.unsplash.com`, `cdn.jsdelivr.net`, `unpkg.com`. This allowlist is now upstream-owned (upstream adopted the SSRF guard our fork originally added). Do not bypass or weaken it; check the source for the current patterns before editing.
+- `SiteService.generateSite()` validates output paths stay within the pages directory. Do not remove the traversal guard. (fork-local)
+- `get-screen-image.ts` checks `response.ok` before processing image data. Follow this pattern for any new fetch calls. (fork-local)
+- CSP headers are applied via `buildCspResponse()` in `lib/server/csp.ts` -- used by both the Vite plugin and `serveHtmlInMemory`. Update the shared helper, not individual call sites. (fork-local)
+- `STITCH_HOST` is validated: must be `https:` and hostname must end with `.googleapis.com`. Invalid values are ignored and the default endpoint is used. (fork-local)
 - File writes containing credentials must use `mode: 0o600`. Both `AuthModeStep.ts` (`.env` file) and `ConfigStep.ts` (Gemini extension JSON) demonstrate this pattern.
 - Shell commands use `shell: false` on non-Windows. Do not switch to `shell: true`.
 
 ## Running Tests
 
 ```bash
-bun test                    # Full suite (~502 tests + security tests)
+bun test                    # Full suite (~594 pass + security tests)
 bun test tests/security/    # Security regression tests only
 bun test src/lib/server/    # Co-located tests for a specific module
 ```
