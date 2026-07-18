@@ -52,6 +52,7 @@ The proxy exposes these tools alongside the upstream Stitch MCP tools. They comb
 - **`build_site`** — Builds a site from a project by mapping screens to routes. Returns the design HTML for each page.
 - **`get_screen_code`** — Retrieves a screen and downloads its HTML code content.
 - **`get_screen_image`** — Retrieves a screen and downloads its screenshot image as base64.
+- **`set_log_level`** — Changes local logging verbosity at runtime (`off` / `minimal` / `full`). See [Logging](#logging).
 
 `build_site` input schema:
 
@@ -184,6 +185,44 @@ Then use the proxy with `STITCH_USE_SYSTEM_GCLOUD=1`:
 | `STITCH_PROJECT_ID` | Override project ID |
 | `GOOGLE_CLOUD_PROJECT` | Alternative project ID variable |
 | `STITCH_HOST` | Custom Stitch API endpoint |
+| `STITCH_MCP_LOG_LEVEL` | Proxy logging verbosity: `off`, `minimal` (default), or `full`. See [Logging](#logging) |
+| `STITCH_MCP_LOG_DIR` | Directory for proxy logs (default: `.stitch-mcp/log` relative to the proxy's working directory) |
+
+## Logging
+
+When you run the proxy (`stitch-mcp proxy`), it records the tool calls flowing through it to a local log. This is useful for seeing what an agent actually did and for debugging.
+
+**Levels:**
+
+| Level | What it captures | Where |
+|-------|------------------|-------|
+| `off` | Nothing | — |
+| `minimal` (default) | One line per call: tool name, timing, ok/error — no args or results | `<log-dir>/metadata.jsonl` |
+| `full` | Full args, results, and downloaded HTML/screenshot assets | `<log-dir>/events.jsonl` + `<log-dir>/blobs/` |
+
+**Set the level three ways:**
+
+1. **Environment variable** (per run, good for MCP client configs):
+   ```json
+   "env": { "STITCH_API_KEY": "…", "STITCH_MCP_LOG_LEVEL": "minimal", "STITCH_MCP_LOG_DIR": "/absolute/path/to/logs" }
+   ```
+   Set `STITCH_MCP_LOG_DIR` to an absolute path — otherwise logs land in whatever working directory the MCP client launched the proxy from.
+
+2. **At runtime**, by having your agent call the `set_log_level` tool (e.g. "set the stitch log level to full"). Takes effect immediately, no restart. Handy to turn `full` on just while debugging, then back to `minimal`.
+
+3. **Legacy toggle:** `STITCH_MCP_LOG=1` maps to `full` (kept for compatibility with the upstream flag).
+
+**Read the logs:**
+
+```bash
+# tail the minimal metadata stream
+tail -f .stitch-mcp/log/metadata.jsonl | jq .
+
+# in full mode, list captured calls
+jq -c '{type, tool: .payload.tool}' .stitch-mcp/log/events.jsonl
+```
+
+> Note: `set_log_level` is exposed to the connected MCP client, so an agent can raise verbosity to `full` and persist call args/results to disk. Set `STITCH_MCP_LOG_LEVEL=off` if you don't want any local capture.
 
 ## Troubleshooting
 
