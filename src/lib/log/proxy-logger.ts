@@ -28,7 +28,10 @@ export interface ProxyLoggerDeps {
 
 export function createProxyLogger(deps: ProxyLoggerDeps = {}): ProxyLogger {
   const root = deps.root ?? process.env.STITCH_MCP_LOG_DIR ?? DEFAULT_LOG_ROOT;
-  const eventsPath = join(root, 'events.jsonl');
+  // Minimal metadata goes to its own stream so it never mixes with the strict
+  // call.requested/completed/failed schema that `full` capture writes to
+  // events.jsonl (which upstream's EventSchema and log tooling parse).
+  const metadataPath = join(root, 'metadata.jsonl');
   const getLevel = deps.getLevel ?? getLogLevel;
   const append = deps.append ?? appendEvent;
   const newId = deps.newId ?? (() => randomUUID());
@@ -51,7 +54,7 @@ export function createProxyLogger(deps: ProxyLoggerDeps = {}): ProxyLogger {
       try {
         if (level === 'minimal') {
           const id = newId();
-          const result = await append(eventsPath, {
+          const result = await append(metadataPath, {
             id,
             time: input.started_at,
             trace_id: id,

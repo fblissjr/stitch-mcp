@@ -40,7 +40,9 @@ describe('createProxyLogger', () => {
 
     expect(fullCapture.capture).toHaveBeenCalledTimes(0);
     expect(append).toHaveBeenCalledTimes(1);
-    const [, event] = append.mock.calls[0] as [string, any];
+    const [path, event] = append.mock.calls[0] as [string, any];
+    // minimal writes to its own stream, not events.jsonl
+    expect(path.endsWith('metadata.jsonl')).toBe(true);
     expect(event.type).toBe('call.metadata');
     expect(event.id).toBe('id-123');
     expect(event.trace_id).toBe('id-123');

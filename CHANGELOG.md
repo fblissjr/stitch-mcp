@@ -4,7 +4,7 @@
 
 ### Added
 - Local proxy logging with graduated verbosity, composed over the upstream `lib/log` capture primitives:
-  - Levels `off` / `minimal` / `full`. `minimal` (the default) writes one metadata-only line per tool call (tool, timing, ok/error) to `.stitch-mcp/log/events.jsonl`; `full` captures args, results, and downloaded assets via the upstream `CaptureHandler`.
+  - Levels `off` / `minimal` / `full`. `minimal` (the default) writes one metadata-only line per tool call (tool, timing, ok/error) to `.stitch-mcp/log/metadata.jsonl` (a separate stream from the strict-schema `events.jsonl`); `full` captures args, results, and downloaded assets via the upstream `CaptureHandler`.
   - Seeded from `STITCH_MCP_LOG_LEVEL` (or the legacy `STITCH_MCP_LOG=1` toggle, which maps to `full`); log directory overridable via `STITCH_MCP_LOG_DIR`.
   - New `set_log_level` virtual tool to change verbosity at runtime from any MCP client.
   - Capture is best-effort: a logging failure never breaks a tool call and is reported once to stderr.

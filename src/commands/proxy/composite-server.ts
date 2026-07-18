@@ -109,14 +109,18 @@ export class CompositeStitchServer {
         ? await this.executeVirtualTool(virtualTool, args || {})
         : await this.forwardToolCall(name, args);
 
-      await this.logger.record({
-        tool: name,
-        args: (args || {}) as Record<string, unknown>,
-        result,
-        duration_ms: Date.now() - t0,
-        started_at: startedAt,
-        finished_at: new Date().toISOString(),
-      });
+      // Fire-and-forget: never block the tool response on logging I/O. record()
+      // is best-effort and swallows its own errors; .catch is belt-and-suspenders.
+      void this.logger
+        .record({
+          tool: name,
+          args: (args || {}) as Record<string, unknown>,
+          result,
+          duration_ms: Date.now() - t0,
+          started_at: startedAt,
+          finished_at: new Date().toISOString(),
+        })
+        .catch(() => {});
 
       return result;
     });

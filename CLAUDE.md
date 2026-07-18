@@ -46,10 +46,10 @@ The MCP proxy (`src/commands/proxy/`) uses `CompositeStitchServer` instead of th
 
 `CompositeStitchServer` records each `tools/call` to a local log, gated by a runtime verbosity level (`src/lib/log/level.ts`): `off` / `minimal` / `full`.
 
-- `minimal` (default) appends one metadata-only `call.metadata` line per call (tool, timing, ok/error) to `.stitch-mcp/log/events.jsonl` -- no args, results, or blobs.
-- `full` delegates to the upstream `CaptureHandler` (args + results + content-addressed blobs).
-- The logger (`src/lib/log/proxy-logger.ts`) is a **composition layer over upstream's `lib/log` primitives** (`appendEvent`, `createCaptureHandler`) -- keep it that way so upstream improvements flow through. It is best-effort: capture failures never break a tool call and warn to stderr once.
-- Level is seeded from `STITCH_MCP_LOG_LEVEL` (or legacy `STITCH_MCP_LOG=1` -> `full`); dir overridable via `STITCH_MCP_LOG_DIR`. Runtime changes go through the `set_log_level` virtual tool.
+- `minimal` (default) appends one metadata-only `call.metadata` line per call (tool, timing, ok/error) to `.stitch-mcp/log/metadata.jsonl` -- no args, results, or blobs. This is a **separate stream** from `events.jsonl` so it never mixes with the strict `EventSchema` (call.requested/completed/failed) that `full` capture and the log tooling parse.
+- `full` delegates to the upstream `CaptureHandler` (args + results + content-addressed blobs, written to `events.jsonl` + `blobs/`).
+- The logger (`src/lib/log/proxy-logger.ts`) is a **composition layer over upstream's `lib/log` primitives** (`appendEvent`, `createCaptureHandler`) -- keep it that way so upstream improvements flow through. It is best-effort and fire-and-forget: capture never blocks or breaks a tool call, and warns to stderr once on failure.
+- Level is seeded from `STITCH_MCP_LOG_LEVEL` (or legacy `STITCH_MCP_LOG=1` -> `full`); dir overridable via `STITCH_MCP_LOG_DIR`. Runtime changes go through the `set_log_level` virtual tool, which is intentionally agent-callable (any connected MCP client can change verbosity) -- note this also means the model can escalate what gets persisted to disk.
 
 ### Stitch SDK constraints
 
