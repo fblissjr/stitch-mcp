@@ -14,9 +14,13 @@ This is a **private downstream fork** of the upstream `stitch-mcp` project (Goog
 ```bash
 git fetch upstream
 git merge upstream/main        # resolve conflicts (historically only src/commands/proxy/handler.ts)
+bun install                    # reconcile node_modules when the merge bumps deps (e.g. the SDK)
 bun test                       # expect 0 fail
+bun run build                  # confirm the build/typecheck still passes
 git push origin main           # when ready
 ```
+
+Note: a merge that bumps a dependency in `package.json`/`bun.lock` does **not** update `node_modules` on its own. Always `bun install` after merging, or `tsc`/`bun run build` will fail against stale installed types (the `@google/stitch-sdk` 0.3.5 sync tripped this once).
 
 ## Deviations we carry
 
@@ -54,6 +58,8 @@ git push origin main           # when ready
 
 - Nothing currently. (Proxy-level logging, previously parked after the upstream logging subsystem landed, is now implemented above.)
 
-## Known issues inherited from upstream
+## Known issues
 
-- `src/commands/upload/command.ts` fails `tsc` (`project.upload` is missing from the pinned `@google/stitch-sdk` `Project` type). Pre-existing in upstream, not introduced by the fork. Revisit on the next SDK bump.
+- None currently.
+
+(Historical: `src/commands/upload/command.ts` briefly failed `tsc` after the 0.9.0 merge because `node_modules` still held the old `@google/stitch-sdk` 0.0.3 while `package.json`/`bun.lock` had moved to 0.3.5. Fixed by `bun install` -- see the sync procedure note above. It was never an upstream code bug.)
