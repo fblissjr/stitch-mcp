@@ -1,5 +1,6 @@
 import { test, expect, describe, mock } from 'bun:test';
-import { createProxyLogger } from './proxy-logger.js';
+import { isAbsolute, sep } from 'node:path';
+import { createProxyLogger, resolveDefaultLogRoot } from './proxy-logger.js';
 import type { CaptureInput, CaptureResult, CaptureSpec } from './capture/spec.js';
 
 function input(overrides: Partial<CaptureInput> = {}): CaptureInput {
@@ -13,6 +14,16 @@ function input(overrides: Partial<CaptureInput> = {}): CaptureInput {
     ...overrides,
   };
 }
+
+describe('resolveDefaultLogRoot', () => {
+  test('resolves to an absolute .stitch-mcp/log inside the project', () => {
+    const root = resolveDefaultLogRoot();
+    expect(isAbsolute(root)).toBe(true);
+    expect(root.endsWith(`.stitch-mcp${sep}log`)).toBe(true);
+    // walked up to the project root, not left as a CWD-relative fragment
+    expect(root).not.toBe(`.stitch-mcp${sep}log`);
+  });
+});
 
 describe('createProxyLogger', () => {
   test('off: records nothing', async () => {

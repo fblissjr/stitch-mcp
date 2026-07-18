@@ -1,9 +1,29 @@
 import { randomUUID } from 'node:crypto';
-import { join } from 'node:path';
+import { existsSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { appendEvent, type AppendResult } from './append.js';
 import { createCaptureHandler, DEFAULT_LOG_ROOT } from './factory.js';
 import type { CaptureInput, CaptureSpec } from './capture/spec.js';
 import { getLogLevel, type LogLevel } from './level.js';
+
+/**
+ * Default log root: the `.stitch-mcp/log` folder at the stitch-mcp project
+ * root, found by walking up from this module to the nearest `package.json`.
+ * This keeps logs inside the project regardless of the working directory the
+ * MCP client launches the proxy from. Falls back to the CWD-relative
+ * `DEFAULT_LOG_ROOT` only if no project root can be located.
+ */
+export function resolveDefaultLogRoot(): string {
+  let dir = dirname(fileURLToPath(import.meta.url));
+  for (let i = 0; i < 12; i++) {
+    if (existsSync(join(dir, 'package.json'))) return join(dir, '.stitch-mcp', 'log');
+    const parent = dirname(dir);
+    if (parent === dir) break;
+    dir = parent;
+  }
+  return DEFAULT_LOG_ROOT;
+}
 
 /**
  * Records MCP proxy tool calls to the local log, honoring the current
@@ -27,7 +47,7 @@ export interface ProxyLoggerDeps {
 }
 
 export function createProxyLogger(deps: ProxyLoggerDeps = {}): ProxyLogger {
-  const root = deps.root ?? process.env.STITCH_MCP_LOG_DIR ?? DEFAULT_LOG_ROOT;
+  const root = deps.root ?? process.env.STITCH_MCP_LOG_DIR ?? resolveDefaultLogRoot();
   // Minimal metadata goes to its own stream so it never mixes with the strict
   // call.requested/completed/failed schema that `full` capture writes to
   // events.jsonl (which upstream's EventSchema and log tooling parse).

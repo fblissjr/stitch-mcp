@@ -186,7 +186,7 @@ Then use the proxy with `STITCH_USE_SYSTEM_GCLOUD=1`:
 | `GOOGLE_CLOUD_PROJECT` | Alternative project ID variable |
 | `STITCH_HOST` | Custom Stitch API endpoint |
 | `STITCH_MCP_LOG_LEVEL` | Proxy logging verbosity: `off`, `minimal` (default), or `full`. See [Logging](#logging) |
-| `STITCH_MCP_LOG_DIR` | Directory for proxy logs (default: `.stitch-mcp/log` relative to the proxy's working directory) |
+| `STITCH_MCP_LOG_DIR` | Directory for proxy logs (default: the `.stitch-mcp/log` folder at the stitch-mcp project root) |
 
 ## Logging
 
@@ -204,9 +204,9 @@ When you run the proxy (`stitch-mcp proxy`), it records the tool calls flowing t
 
 1. **Environment variable** (per run, good for MCP client configs):
    ```json
-   "env": { "STITCH_API_KEY": "…", "STITCH_MCP_LOG_LEVEL": "minimal", "STITCH_MCP_LOG_DIR": "/absolute/path/to/logs" }
+   "env": { "STITCH_API_KEY": "…", "STITCH_MCP_LOG_LEVEL": "minimal" }
    ```
-   Set `STITCH_MCP_LOG_DIR` to an absolute path — otherwise logs land in whatever working directory the MCP client launched the proxy from.
+   By default logs are written to `.stitch-mcp/log/` at the stitch-mcp project root (resolved from the installed location, not the launch directory), so you don't need to set a path. Override with `STITCH_MCP_LOG_DIR` (absolute path recommended) if you want them elsewhere.
 
 2. **At runtime**, by having your agent call the `set_log_level` tool (e.g. "set the stitch log level to full"). Takes effect immediately, no restart. Handy to turn `full` on just while debugging, then back to `minimal`.
 
